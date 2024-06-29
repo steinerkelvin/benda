@@ -16,7 +16,15 @@ rust-fmt:
 
 build:
 	cd crates/benda; \
-		maturin develop
+		maturin develop --release
 
 run_examples:
 	python -m examples.quicksort
+	python -m examples.radix_sort
+	bend run examples/radix_sort.bend
+	python -m examples.insertion_sort
+	bend run examples/insertion_sort.bend
+	python -m examples.bitonic_sort
+	bend run examples/bitonic_sort.bend
+	python -m examples.bubble_sort
+	bend run examples/bubble_sort.bend

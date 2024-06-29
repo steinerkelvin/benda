@@ -1,10 +1,14 @@
+use std::path::Path;
+
 use num_traits::ToPrimitive;
 use parser::Parser;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyFunction, PyString, PyTuple};
 use rustpython_parser::{parse, Mode};
+use types::book::Book;
+use types::fan::Fan;
 use types::tree::{Leaf, Node, Tree};
-use types::u24;
+use types::u24::U24;
 mod benda_ffi;
 mod parser;
 mod types;
@@ -12,6 +16,26 @@ mod types;
 #[pyfunction]
 fn switch() -> PyResult<String> {
     Ok("Ok".to_string())
+}
+
+#[pyfunction]
+fn load_book_from_file(py: Python, path: Py<PyString>) -> PyResult<Py<Book>> {
+    let binding = path.to_string();
+    let new_path = Path::new(&binding);
+    let bend_book = bend::load_file_to_book(new_path);
+
+    //let code = std::fs::read_to_string(new_path)
+    //    .map_err(|e| e.to_string())
+    //    .unwrap();
+    //let bend_book = bend::fun::load_book::do_parse_book(
+    //    &code,
+    //    new_path,
+    //    BendBook::default(),
+    //);
+
+    let book = Book::new(&mut bend_book.unwrap());
+
+    Ok(Py::new(py, book).unwrap())
 }
 
 #[pyclass(name = "bjit")]
@@ -83,14 +107,13 @@ impl PyBjit {
 
         match module {
             rustpython_parser::ast::Mod::Module(mods) => {
-                for (index, stmt) in mods.body.iter().enumerate() {
+                for stmt in mods.body.iter() {
                     if let rustpython_parser::ast::Stmt::FunctionDef(fun_def) =
                         stmt
                     {
                         if fun_def.name == name.to_string() {
                             let mut parser = Parser::new(
                                 mods.body.clone(),
-                                index,
                                 parsed_types.clone(),
                             );
                             let return_val =
@@ -114,10 +137,12 @@ impl PyBjit {
 #[pymodule]
 fn benda(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(switch, m)?)?;
+    m.add_function(wrap_pyfunction!(load_book_from_file, m)?)?;
     m.add_class::<PyBjit>()?;
-    m.add_class::<u24::u24>()?;
+    m.add_class::<U24>()?;
     m.add_class::<Tree>()?;
     m.add_class::<Node>()?;
     m.add_class::<Leaf>()?;
+    m.add_class::<Fan>()?;
     Ok(())
 }
